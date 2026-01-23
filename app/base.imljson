@@ -1,0 +1,59 @@
+{
+    "baseUrl": "https://engine.futuresearch.ai",
+    "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer {{connection.apiKey}}"
+    },
+    "log": {
+        "sanitize": [
+            "request.headers.authorization",
+            "request.headers.Authorization"
+        ]
+    },
+    "response": {
+        "error": {
+            "type": "RuntimeError",
+            "message": "{{ifempty(body.detail, body.message, 'Unknown error')}}",
+            "400": {
+                "type": "DataError",
+                "message": "{{ifempty(body.detail, 'Invalid request data')}}"
+            },
+            "401": {
+                "type": "ConnectionError",
+                "message": "Invalid API key. Please check your EveryRow API key."
+            },
+            "402": {
+                "type": "RuntimeError",
+                "message": "Insufficient balance. Please add credits to your EveryRow account."
+            },
+            "403": {
+                "type": "ConnectionError",
+                "message": "Access denied. Your API key may not have permission for this operation."
+            },
+            "404": {
+                "type": "DataError",
+                "message": "Resource not found: {{ifempty(body.detail, 'The requested resource does not exist')}}"
+            },
+            "422": {
+                "type": "DataError",
+                "message": "Validation error: {{ifempty(body.detail, 'Invalid input data')}}"
+            },
+            "429": {
+                "type": "RateLimitError",
+                "message": "Rate limit exceeded. Please try again later."
+            },
+            "500": {
+                "type": "RuntimeError",
+                "message": "EveryRow server error. Please try again later."
+            },
+            "502": {
+                "type": "RuntimeError",
+                "message": "EveryRow service temporarily unavailable. Please try again later."
+            },
+            "503": {
+                "type": "RuntimeError",
+                "message": "EveryRow service is currently unavailable. Please try again later."
+            }
+        }
+    }
+}

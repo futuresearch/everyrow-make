@@ -1,0 +1,30 @@
+{
+    "label": "EveryRow API",
+    "type": "basic",
+    "parameters": [
+        {
+            "name": "apiKey",
+            "label": "API Key",
+            "type": "password",
+            "required": true,
+            "help": "Your EveryRow API key. Get one at [everyrow.io/settings/api-keys](https://everyrow.io/settings/api-keys)"
+        }
+    ],
+    "communication": {
+        "url": "/whoami",
+        "method": "GET",
+        "headers": {
+            "Authorization": "Bearer {{parameters.apiKey}}"
+        },
+        "response": {
+            "metadata": {
+                "type": "email",
+                "value": "{{body.email}}"
+            },
+            "error": {
+                "type": "ConnectionError",
+                "message": "{{ifempty(body.detail, 'Invalid API key')}}"
+            }
+        }
+    }
+}

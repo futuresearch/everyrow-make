@@ -1,0 +1,164 @@
+{
+    "label": "Start Agent Map Task",
+    "description": "Run AI-powered web research on each row. Returns a task ID for polling.",
+    "type": "action",
+    "connection": "everyrow-api",
+    "parameters": [
+        {
+            "name": "sessionName",
+            "label": "Session Name",
+            "type": "text",
+            "required": false,
+            "default": "Make.com Agent Map",
+            "help": "Label for this session (visible in EveryRow dashboard)"
+        },
+        {
+            "name": "inputData",
+            "label": "Input Data",
+            "type": "array",
+            "required": true,
+            "spec": {
+                "type": "collection",
+                "spec": []
+            },
+            "help": "Array of objects to research. Each row will be processed by an AI agent."
+        },
+        {
+            "name": "task",
+            "label": "Task Description",
+            "type": "text",
+            "required": true,
+            "multiline": true,
+            "help": "Describe the research to perform on each row. Example: 'Find the company website, CEO name, and recent news'"
+        },
+        {
+            "name": "effortLevel",
+            "label": "Effort Level",
+            "type": "select",
+            "required": false,
+            "default": "medium",
+            "options": [
+                { "label": "Low (faster, less thorough)", "value": "low" },
+                { "label": "Medium (balanced)", "value": "medium" },
+                { "label": "High (slower, more thorough)", "value": "high" }
+            ],
+            "help": "How much effort the agent should put into researching each row"
+        },
+        {
+            "name": "responseSchema",
+            "label": "Response Schema (JSON)",
+            "type": "text",
+            "required": false,
+            "multiline": true,
+            "help": "JSON schema defining the output structure. Example: {\"website\": {\"type\": \"str\"}, \"ceo_name\": {\"type\": \"str\"}, \"employee_count\": {\"type\": \"int\"}}"
+        },
+        {
+            "name": "model",
+            "label": "LLM Model",
+            "type": "select",
+            "required": false,
+            "default": "",
+            "options": [
+                { "label": "Auto (Default)", "value": "" },
+                { "label": "Claude 3.5 Haiku", "value": "claude-3-5-haiku" },
+                { "label": "Claude 3.5 Sonnet", "value": "claude-3-5-sonnet" },
+                { "label": "GPT-4o", "value": "gpt-4o" },
+                { "label": "GPT-4o Mini", "value": "gpt-4o-mini" }
+            ],
+            "help": "LLM model for the research agent",
+            "advanced": true
+        },
+        {
+            "name": "returnTablePerRow",
+            "label": "Return Table Per Row",
+            "type": "boolean",
+            "required": false,
+            "default": false,
+            "help": "If true, each row's result can be a table instead of a single object",
+            "advanced": true
+        }
+    ],
+    "communication": [
+        {
+            "url": "/sessions/create",
+            "method": "POST",
+            "body": {
+                "name": "{{parameters.sessionName}}"
+            },
+            "response": {
+                "temp": {
+                    "sessionId": "{{body.id}}"
+                }
+            }
+        },
+        {
+            "url": "/tasks",
+            "method": "POST",
+            "body": {
+                "task_type": "create_group",
+                "session_id": "{{temp.sessionId}}",
+                "data": "{{parameters.inputData}}"
+            },
+            "response": {
+                "temp": {
+                    "artifactTaskId": "{{body.id}}"
+                }
+            }
+        },
+        {
+            "url": "/tasks/{{temp.artifactTaskId}}/status",
+            "method": "GET",
+            "response": {
+                "temp": {
+                    "inputArtifactId": "{{body.artifact_id}}"
+                }
+            }
+        },
+        {
+            "url": "/tasks",
+            "method": "POST",
+            "body": {
+                "task_type": "agent",
+                "session_id": "{{temp.sessionId}}",
+                "query": {
+                    "task": "{{parameters.task}}",
+                    "effort_level": "{{parameters.effortLevel}}",
+                    "response_schema": "{{ifempty(parseJSON(parameters.responseSchema), emptyobject)}}",
+                    "model": "{{parameters.model}}",
+                    "return_table_per_row": "{{parameters.returnTablePerRow}}"
+                },
+                "input_artifacts": ["{{temp.inputArtifactId}}"],
+                "join_with_input": true
+            },
+            "response": {
+                "output": {
+                    "taskId": "{{body.id}}",
+                    "sessionId": "{{temp.sessionId}}",
+                    "status": "{{body.status}}"
+                }
+            }
+        }
+    ],
+    "interface": [
+        {
+            "name": "taskId",
+            "label": "Task ID",
+            "type": "text"
+        },
+        {
+            "name": "sessionId",
+            "label": "Session ID",
+            "type": "text"
+        },
+        {
+            "name": "status",
+            "label": "Initial Status",
+            "type": "text"
+        }
+    ],
+    "samples": {
+        "taskId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "sessionId": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+        "status": "pending"
+    }
+}

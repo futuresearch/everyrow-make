@@ -1,0 +1,18 @@
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Make.com local cache
+.make/
+
+# Environment files
+.env
+.env.local
+*.env
+
+# Test files with real API keys
+test-*.json

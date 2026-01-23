@@ -1,0 +1,40 @@
+{
+    "label": "Get Task Results",
+    "description": "Retrieve results from a completed EveryRow task",
+    "type": "search",
+    "connection": "everyrow-api",
+    "parameters": [
+        {
+            "name": "artifactId",
+            "label": "Artifact ID",
+            "type": "text",
+            "required": true,
+            "help": "The artifact ID from Get Task Status (available when task is completed)"
+        }
+    ],
+    "communication": {
+        "url": "/artifacts",
+        "method": "GET",
+        "qs": {
+            "artifact_ids": "{{parameters.artifactId}}"
+        },
+        "response": {
+            "iterate": "{{body.artifacts}}",
+            "output": "{{item.data}}"
+        }
+    },
+    "interface": [
+        {
+            "name": "__dynamicInterface",
+            "type": "any",
+            "label": "Result Data"
+        }
+    ],
+    "samples": [
+        {
+            "name": "Example Company",
+            "score": 0.85,
+            "rank": 1
+        }
+    ]
+}

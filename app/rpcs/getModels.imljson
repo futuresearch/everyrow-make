@@ -1,0 +1,16 @@
+{
+    "label": "Get Available Models",
+    "description": "Retrieves available LLM models for EveryRow operations",
+    "connection": "everyrow-api",
+    "communication": {
+        "url": "/models",
+        "method": "GET",
+        "response": {
+            "iterate": "{{body.models}}",
+            "output": {
+                "label": "{{item.name}}",
+                "value": "{{item.id}}"
+            }
+        }
+    }
+}

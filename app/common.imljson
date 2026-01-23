@@ -1,0 +1,58 @@
+{
+    "defaultSessionName": "Make.com Session",
+    "defaultPollInterval": 5000,
+    "llmModels": [
+        {
+            "label": "Auto (Default)",
+            "value": ""
+        },
+        {
+            "label": "Claude 3.5 Haiku",
+            "value": "claude-3-5-haiku"
+        },
+        {
+            "label": "Claude 3.5 Sonnet",
+            "value": "claude-3-5-sonnet"
+        },
+        {
+            "label": "GPT-4o",
+            "value": "gpt-4o"
+        },
+        {
+            "label": "GPT-4o Mini",
+            "value": "gpt-4o-mini"
+        }
+    ],
+    "fieldTypes": [
+        {
+            "label": "Float (decimal number)",
+            "value": "float"
+        },
+        {
+            "label": "Integer (whole number)",
+            "value": "int"
+        },
+        {
+            "label": "String (text)",
+            "value": "str"
+        },
+        {
+            "label": "Boolean (true/false)",
+            "value": "bool"
+        }
+    ],
+    "effortLevels": [
+        {
+            "label": "Low (faster, less thorough)",
+            "value": "low"
+        },
+        {
+            "label": "Medium (balanced)",
+            "value": "medium"
+        },
+        {
+            "label": "High (slower, more thorough)",
+            "value": "high"
+        }
+    ]
+}

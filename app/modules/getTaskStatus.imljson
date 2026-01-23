@@ -1,0 +1,69 @@
+{
+    "label": "Get Task Status",
+    "description": "Check the status of an EveryRow task",
+    "type": "action",
+    "connection": "everyrow-api",
+    "parameters": [
+        {
+            "name": "taskId",
+            "label": "Task ID",
+            "type": "text",
+            "required": true,
+            "help": "The task ID returned from a Start Task module"
+        }
+    ],
+    "communication": {
+        "url": "/tasks/{{parameters.taskId}}/status",
+        "method": "GET",
+        "response": {
+            "output": {
+                "status": "{{body.status}}",
+                "artifactId": "{{body.artifact_id}}",
+                "error": "{{body.error}}",
+                "isComplete": "{{if(body.status == 'completed', true, false)}}",
+                "isFailed": "{{if(body.status == 'failed', true, false)}}",
+                "isPending": "{{if(or(body.status == 'pending', body.status == 'running'), true, false)}}"
+            }
+        }
+    },
+    "interface": [
+        {
+            "name": "status",
+            "label": "Status",
+            "type": "text"
+        },
+        {
+            "name": "artifactId",
+            "label": "Artifact ID",
+            "type": "text"
+        },
+        {
+            "name": "error",
+            "label": "Error",
+            "type": "text"
+        },
+        {
+            "name": "isComplete",
+            "label": "Is Complete",
+            "type": "boolean"
+        },
+        {
+            "name": "isFailed",
+            "label": "Is Failed",
+            "type": "boolean"
+        },
+        {
+            "name": "isPending",
+            "label": "Is Pending",
+            "type": "boolean"
+        }
+    ],
+    "samples": {
+        "status": "completed",
+        "artifactId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "error": null,
+        "isComplete": true,
+        "isFailed": false,
+        "isPending": false
+    }
+}

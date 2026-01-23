@@ -1,0 +1,152 @@
+{
+    "label": "Start Rank Task",
+    "description": "Score and sort rows by AI-evaluated criteria. Returns a task ID for polling.",
+    "type": "action",
+    "connection": "everyrow-api",
+    "parameters": [
+        {
+            "name": "sessionName",
+            "label": "Session Name",
+            "type": "text",
+            "required": false,
+            "default": "Make.com Rank",
+            "help": "Label for this session (visible in EveryRow dashboard)"
+        },
+        {
+            "name": "inputData",
+            "label": "Input Data",
+            "type": "array",
+            "required": true,
+            "spec": {
+                "type": "collection",
+                "spec": []
+            },
+            "help": "Array of objects to rank. Each object should have the fields you want to evaluate."
+        },
+        {
+            "name": "task",
+            "label": "Task Description",
+            "type": "text",
+            "required": true,
+            "help": "Describe how items should be ranked. Example: 'Rank by relevance to machine learning'"
+        },
+        {
+            "name": "fieldName",
+            "label": "Output Field Name",
+            "type": "text",
+            "required": true,
+            "default": "rank_score",
+            "help": "Name of the field to store the rank score"
+        },
+        {
+            "name": "fieldType",
+            "label": "Field Type",
+            "type": "select",
+            "required": true,
+            "default": "float",
+            "options": [
+                { "label": "Float (decimal number)", "value": "float" },
+                { "label": "Integer (whole number)", "value": "int" },
+                { "label": "String (text)", "value": "str" },
+                { "label": "Boolean (true/false)", "value": "bool" }
+            ],
+            "help": "Data type for the output field"
+        },
+        {
+            "name": "ascendingOrder",
+            "label": "Ascending Order",
+            "type": "boolean",
+            "required": false,
+            "default": false,
+            "help": "If true, sort from lowest to highest score"
+        }
+    ],
+    "communication": [
+        {
+            "url": "/sessions/create",
+            "method": "POST",
+            "body": {
+                "name": "{{parameters.sessionName}}"
+            },
+            "response": {
+                "temp": {
+                    "sessionId": "{{body.id}}"
+                }
+            }
+        },
+        {
+            "url": "/tasks",
+            "method": "POST",
+            "body": {
+                "task_type": "create_group",
+                "session_id": "{{temp.sessionId}}",
+                "data": "{{parameters.inputData}}"
+            },
+            "response": {
+                "temp": {
+                    "artifactTaskId": "{{body.id}}"
+                }
+            }
+        },
+        {
+            "url": "/tasks/{{temp.artifactTaskId}}/status",
+            "method": "GET",
+            "response": {
+                "temp": {
+                    "inputArtifactId": "{{body.artifact_id}}"
+                }
+            }
+        },
+        {
+            "url": "/tasks",
+            "method": "POST",
+            "body": {
+                "task_type": "deep_rank",
+                "session_id": "{{temp.sessionId}}",
+                "query": {
+                    "task": "{{parameters.task}}",
+                    "field_to_sort_by": "{{parameters.fieldName}}",
+                    "field_type": "{{parameters.fieldType}}",
+                    "ascending_order": "{{parameters.ascendingOrder}}",
+                    "response_schema": {
+                        "_model_name": "RankResponse",
+                        "{{parameters.fieldName}}": {
+                            "type": "{{parameters.fieldType}}",
+                            "optional": false
+                        }
+                    }
+                },
+                "input_artifacts": ["{{temp.inputArtifactId}}"]
+            },
+            "response": {
+                "output": {
+                    "taskId": "{{body.id}}",
+                    "sessionId": "{{temp.sessionId}}",
+                    "status": "{{body.status}}"
+                }
+            }
+        }
+    ],
+    "interface": [
+        {
+            "name": "taskId",
+            "label": "Task ID",
+            "type": "text"
+        },
+        {
+            "name": "sessionId",
+            "label": "Session ID",
+            "type": "text"
+        },
+        {
+            "name": "status",
+            "label": "Initial Status",
+            "type": "text"
+        }
+    ],
+    "samples": {
+        "taskId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "sessionId": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+        "status": "pending"
+    }
+}

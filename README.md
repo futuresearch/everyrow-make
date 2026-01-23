@@ -14,15 +14,39 @@ EveryRow provides intelligent data processing operations:
 
 ## Installation
 
-### Option 1: Install from Make.com (Coming Soon)
+### Option 1: Automated Deploy (Recommended)
 
-Search for "EveryRow" in the Make.com app directory.
+Use the deploy script to automatically upload all components to Make.com:
 
-### Option 2: Import Custom App
+```bash
+# 1. Create an empty app in Make.com first
+#    Go to Make.com → Apps → Create a new App → name it "everyrow"
+
+# 2. Get your Make.com API key
+#    Go to Make.com → Profile → API → Create token (with apps:write scope)
+
+# 3. Install dependencies
+npm install
+
+# 4. Deploy to Make.com (US region)
+MAKE_API_KEY=your-make-api-key MAKE_APP_ID=everyrow npm run deploy
+
+# For EU region:
+MAKE_API_KEY=your-make-api-key MAKE_APP_ID=everyrow npm run deploy:eu1
+```
+
+### Option 2: Manual Import
 
 1. Go to Make.com → Apps → Create a new App
-2. Import the app configuration from the `app/` directory
-3. Configure your API key
+2. Copy-paste each file from the `app/` directory into the appropriate tab:
+   - `base.imljson` → Base tab
+   - `common.imljson` → Common Data tab
+   - Create Connection → paste from `connections/everyrow-api.imljson`
+   - Create each Module → paste from `modules/*.imljson`
+
+### Option 3: Install from Make.com (Coming Soon)
+
+Search for "EveryRow" in the Make.com app directory.
 
 ## Getting Your API Key
 
@@ -138,7 +162,25 @@ Returns: Array of result objects
 
 ## Development
 
-### Local Development with VS Code
+### Deploy Script
+
+The `scripts/deploy.ts` script automates uploading to Make.com:
+
+```bash
+# Set environment variables
+export MAKE_API_KEY=your-api-key
+export MAKE_APP_ID=everyrow
+export MAKE_APP_VERSION=1  # optional, defaults to 1
+
+# Deploy to different regions
+npm run deploy        # US1 (default)
+npm run deploy:us1    # US1 explicitly
+npm run deploy:us2    # US2
+npm run deploy:eu1    # EU1
+npm run deploy:eu2    # EU2
+```
+
+### Local Development with VS Code (Alternative)
 
 1. Install the [Make Apps extension](https://marketplace.visualstudio.com/items?itemName=Make.make-apps)
 2. Add your Make.com environment

@@ -16,3 +16,8 @@ Thumbs.db
 
 # Test files with real API keys
 test-*.json
+
+# Node.js
+node_modules/
+dist/
+package-lock.json

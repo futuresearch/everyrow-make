@@ -1,0 +1,30 @@
+{
+  "name": "make-app-everyrow",
+  "version": "1.0.0",
+  "description": "Make.com custom app for EveryRow - AI-powered data operations",
+  "scripts": {
+    "deploy": "npx ts-node scripts/deploy.ts",
+    "deploy:eu1": "MAKE_BASE_URL=https://eu1.make.com/api npm run deploy",
+    "deploy:eu2": "MAKE_BASE_URL=https://eu2.make.com/api npm run deploy",
+    "deploy:us1": "MAKE_BASE_URL=https://us1.make.com/api npm run deploy",
+    "deploy:us2": "MAKE_BASE_URL=https://us2.make.com/api npm run deploy"
+  },
+  "keywords": [
+    "make.com",
+    "everyrow",
+    "automation",
+    "ai",
+    "data-operations"
+  ],
+  "author": "FutureSearch",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/futuresearch/make-app-everyrow"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "@types/node": "^20.10.0"
+  }
+}

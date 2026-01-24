@@ -1,0 +1,168 @@
+{
+    "name": "EveryRow Dedupe Example",
+    "flow": [
+        {
+            "id": 1,
+            "module": "util:SetVariables",
+            "version": 1,
+            "parameters": {},
+            "mapper": {
+                "variables": [
+                    {
+                        "name": "inputData",
+                        "value": "[{\"name\":\"OpenAI\",\"description\":\"AI research company\"},{\"name\":\"Open AI\",\"description\":\"Creators of GPT and ChatGPT\"},{\"name\":\"Anthropic\",\"description\":\"AI safety company\"},{\"name\":\"Stripe\",\"description\":\"Payment processing platform\"},{\"name\":\"Stripe Inc\",\"description\":\"Online payment infrastructure\"},{\"name\":\"Anthropic AI\",\"description\":\"Creators of Claude\"},{\"name\":\"Google\",\"description\":\"Search and cloud company\"},{\"name\":\"Alphabet/Google\",\"description\":\"Tech conglomerate\"}]"
+                    },
+                    {
+                        "name": "apiKey",
+                        "value": "YOUR_EVERYROW_API_KEY"
+                    }
+                ],
+                "scope": "roundtrip"
+            },
+            "metadata": {
+                "designer": { "x": 0, "y": 0 }
+            }
+        },
+        {
+            "id": 2,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/sessions/create",
+                "method": "post",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" },
+                    { "name": "Content-Type", "value": "application/json" }
+                ],
+                "body": "{\"name\":\"make-dedupe-{{now}}\"}",
+                "bodyType": "raw",
+                "contentType": "application/json"
+            },
+            "metadata": {
+                "designer": { "x": 300, "y": 0 }
+            }
+        },
+        {
+            "id": 3,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/tasks",
+                "method": "post",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" },
+                    { "name": "Content-Type", "value": "application/json" }
+                ],
+                "body": "{\"session_id\":\"{{2.data.session_id}}\",\"payload\":{\"task_type\":\"create_group\",\"query\":{\"data_to_create\":{{1.inputData}}}}}",
+                "bodyType": "raw",
+                "contentType": "application/json"
+            },
+            "metadata": {
+                "designer": { "x": 600, "y": 0 }
+            }
+        },
+        {
+            "id": 4,
+            "module": "util:Sleep",
+            "version": 1,
+            "parameters": {},
+            "mapper": { "timeout": 3 },
+            "metadata": {
+                "designer": { "x": 900, "y": 0 }
+            }
+        },
+        {
+            "id": 5,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/tasks/{{3.data.task_id}}/status",
+                "method": "get",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" }
+                ]
+            },
+            "metadata": {
+                "designer": { "x": 1200, "y": 0 }
+            }
+        },
+        {
+            "id": 6,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/tasks",
+                "method": "post",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" },
+                    { "name": "Content-Type", "value": "application/json" }
+                ],
+                "body": "{\"session_id\":\"{{2.data.session_id}}\",\"payload\":{\"task_type\":\"dedupe\",\"processing_mode\":\"transform\",\"query\":{\"equivalence_relation\":\"Two entries are duplicates if they represent the same company, even if the name is slightly different or includes suffixes like Inc, AI, etc.\"},\"input_artifacts\":[\"{{5.data.artifact_id}}\"]}}",
+                "bodyType": "raw",
+                "contentType": "application/json"
+            },
+            "metadata": {
+                "designer": { "x": 1500, "y": 0 }
+            }
+        },
+        {
+            "id": 7,
+            "module": "util:Sleep",
+            "version": 1,
+            "parameters": {},
+            "mapper": { "timeout": 10 },
+            "metadata": {
+                "designer": { "x": 1800, "y": 0 }
+            }
+        },
+        {
+            "id": 8,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/tasks/{{6.data.task_id}}/status",
+                "method": "get",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" }
+                ]
+            },
+            "metadata": {
+                "designer": { "x": 2100, "y": 0 }
+            }
+        },
+        {
+            "id": 9,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/artifacts?artifact_ids={{8.data.artifact_id}}",
+                "method": "get",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" }
+                ]
+            },
+            "metadata": {
+                "designer": { "x": 2400, "y": 0 }
+            }
+        }
+    ],
+    "metadata": {
+        "instant": false,
+        "version": 1,
+        "scenario": {
+            "roundtrips": 1,
+            "maxErrors": 3,
+            "autoCommit": true,
+            "autoCommitTriggerLast": true,
+            "sequential": false,
+            "slots": null
+        },
+        "designer": { "orphans": [] }
+    }
+}

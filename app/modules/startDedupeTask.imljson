@@ -15,13 +15,9 @@
         {
             "name": "inputData",
             "label": "Input Data",
-            "type": "array",
+            "type": "text",
             "required": true,
-            "spec": {
-                "type": "collection",
-                "spec": []
-            },
-            "help": "Array of objects to deduplicate"
+            "help": "JSON array of objects to deduplicate. Example: [{\"name\": \"Company A\"}, {\"name\": \"Company B\"}]"
         },
         {
             "name": "equivalenceRelation",
@@ -41,7 +37,7 @@
             },
             "response": {
                 "temp": {
-                    "sessionId": "{{body.id}}"
+                    "sessionId": "{{body.session_id}}"
                 }
             }
         },
@@ -49,13 +45,17 @@
             "url": "/tasks",
             "method": "POST",
             "body": {
-                "task_type": "create_group",
                 "session_id": "{{temp.sessionId}}",
-                "data": "{{parameters.inputData}}"
+                "payload": {
+                    "task_type": "create_group",
+                    "query": {
+                        "data_to_create": "{{parameters.inputData}}"
+                    }
+                }
             },
             "response": {
                 "temp": {
-                    "artifactTaskId": "{{body.id}}"
+                    "artifactTaskId": "{{body.task_id}}"
                 }
             }
         },
@@ -72,18 +72,21 @@
             "url": "/tasks",
             "method": "POST",
             "body": {
-                "task_type": "dedupe",
                 "session_id": "{{temp.sessionId}}",
-                "query": {
-                    "equivalence_relation": "{{parameters.equivalenceRelation}}"
-                },
-                "input_artifacts": ["{{temp.inputArtifactId}}"]
+                "payload": {
+                    "task_type": "dedupe",
+                    "query": {
+                        "equivalence_relation": "{{parameters.equivalenceRelation}}"
+                    },
+                    "input_artifacts": ["{{temp.inputArtifactId}}"],
+                    "context_artifacts": []
+                }
             },
             "response": {
                 "output": {
-                    "taskId": "{{body.id}}",
+                    "taskId": "{{body.task_id}}",
                     "sessionId": "{{temp.sessionId}}",
-                    "status": "{{body.status}}"
+                    "status": "pending"
                 }
             }
         }

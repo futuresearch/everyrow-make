@@ -19,7 +19,7 @@
             "artifact_ids": "{{parameters.artifactId}}"
         },
         "response": {
-            "iterate": "{{body.artifacts}}",
+            "iterate": "{{first(body).artifacts}}",
             "output": "{{item.data}}"
         }
     },
@@ -30,11 +30,9 @@
             "label": "Result Data"
         }
     ],
-    "samples": [
-        {
-            "name": "Example Company",
-            "score": 0.85,
-            "rank": 1
-        }
-    ]
+    "samples": {
+        "name": "Example Company",
+        "score": 0.85,
+        "rank": 1
+    }
 }

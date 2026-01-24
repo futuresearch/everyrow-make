@@ -1,0 +1,208 @@
+{
+    "name": "EveryRow Merge Example",
+    "flow": [
+        {
+            "id": 1,
+            "module": "util:SetVariables",
+            "version": 1,
+            "parameters": {},
+            "mapper": {
+                "variables": [
+                    {
+                        "name": "leftTable",
+                        "value": "[{\"company\":\"OpenAI\",\"product\":\"ChatGPT\"},{\"company\":\"Anthropic\",\"product\":\"Claude\"},{\"company\":\"Google\",\"product\":\"Gemini\"},{\"company\":\"Meta\",\"product\":\"Llama\"}]"
+                    },
+                    {
+                        "name": "rightTable",
+                        "value": "[{\"name\":\"OpenAI Inc\",\"ceo\":\"Sam Altman\",\"hq\":\"San Francisco\"},{\"name\":\"Anthropic PBC\",\"ceo\":\"Dario Amodei\",\"hq\":\"San Francisco\"},{\"name\":\"Google LLC\",\"ceo\":\"Sundar Pichai\",\"hq\":\"Mountain View\"},{\"name\":\"Meta Platforms\",\"ceo\":\"Mark Zuckerberg\",\"hq\":\"Menlo Park\"}]"
+                    },
+                    {
+                        "name": "apiKey",
+                        "value": "YOUR_EVERYROW_API_KEY"
+                    }
+                ],
+                "scope": "roundtrip"
+            },
+            "metadata": {
+                "designer": { "x": 0, "y": 0 }
+            }
+        },
+        {
+            "id": 2,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/sessions/create",
+                "method": "post",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" },
+                    { "name": "Content-Type", "value": "application/json" }
+                ],
+                "body": "{\"name\":\"make-merge-{{now}}\"}",
+                "bodyType": "raw",
+                "contentType": "application/json"
+            },
+            "metadata": {
+                "designer": { "x": 300, "y": 0 }
+            }
+        },
+        {
+            "id": 3,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/tasks",
+                "method": "post",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" },
+                    { "name": "Content-Type", "value": "application/json" }
+                ],
+                "body": "{\"session_id\":\"{{2.data.session_id}}\",\"payload\":{\"task_type\":\"create_group\",\"query\":{\"data_to_create\":{{1.leftTable}}}}}",
+                "bodyType": "raw",
+                "contentType": "application/json"
+            },
+            "metadata": {
+                "designer": { "x": 600, "y": 0 }
+            }
+        },
+        {
+            "id": 4,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/tasks",
+                "method": "post",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" },
+                    { "name": "Content-Type", "value": "application/json" }
+                ],
+                "body": "{\"session_id\":\"{{2.data.session_id}}\",\"payload\":{\"task_type\":\"create_group\",\"query\":{\"data_to_create\":{{1.rightTable}}}}}",
+                "bodyType": "raw",
+                "contentType": "application/json"
+            },
+            "metadata": {
+                "designer": { "x": 600, "y": 200 }
+            }
+        },
+        {
+            "id": 5,
+            "module": "util:Sleep",
+            "version": 1,
+            "parameters": {},
+            "mapper": { "timeout": 3 },
+            "metadata": {
+                "designer": { "x": 900, "y": 0 }
+            }
+        },
+        {
+            "id": 6,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/tasks/{{3.data.task_id}}/status",
+                "method": "get",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" }
+                ]
+            },
+            "metadata": {
+                "designer": { "x": 1200, "y": 0 }
+            }
+        },
+        {
+            "id": 7,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/tasks/{{4.data.task_id}}/status",
+                "method": "get",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" }
+                ]
+            },
+            "metadata": {
+                "designer": { "x": 1200, "y": 200 }
+            }
+        },
+        {
+            "id": 8,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/tasks",
+                "method": "post",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" },
+                    { "name": "Content-Type", "value": "application/json" }
+                ],
+                "body": "{\"session_id\":\"{{2.data.session_id}}\",\"payload\":{\"task_type\":\"deep_merge\",\"query\":{\"task\":\"Match companies from the left table with their corresponding entries in the right table based on company name similarity\",\"preview\":false},\"input_artifacts\":[\"{{6.data.artifact_id}}\"],\"context_artifacts\":[\"{{7.data.artifact_id}}\"]}}",
+                "bodyType": "raw",
+                "contentType": "application/json"
+            },
+            "metadata": {
+                "designer": { "x": 1500, "y": 0 }
+            }
+        },
+        {
+            "id": 9,
+            "module": "util:Sleep",
+            "version": 1,
+            "parameters": {},
+            "mapper": { "timeout": 15 },
+            "metadata": {
+                "designer": { "x": 1800, "y": 0 }
+            }
+        },
+        {
+            "id": 10,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/tasks/{{8.data.task_id}}/status",
+                "method": "get",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" }
+                ]
+            },
+            "metadata": {
+                "designer": { "x": 2100, "y": 0 }
+            }
+        },
+        {
+            "id": 11,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/artifacts?artifact_ids={{10.data.artifact_id}}",
+                "method": "get",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" }
+                ]
+            },
+            "metadata": {
+                "designer": { "x": 2400, "y": 0 }
+            }
+        }
+    ],
+    "metadata": {
+        "instant": false,
+        "version": 1,
+        "scenario": {
+            "roundtrips": 1,
+            "maxErrors": 3,
+            "autoCommit": true,
+            "autoCommitTriggerLast": true,
+            "sequential": false,
+            "slots": null
+        },
+        "designer": { "orphans": [] }
+    }
+}

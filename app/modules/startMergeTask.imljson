@@ -15,24 +15,16 @@
         {
             "name": "leftTable",
             "label": "Left Table (Primary)",
-            "type": "array",
+            "type": "text",
             "required": true,
-            "spec": {
-                "type": "collection",
-                "spec": []
-            },
-            "help": "Primary array of objects to join"
+            "help": "JSON array of objects for primary table. Example: [{\"name\": \"Company A\"}]"
         },
         {
             "name": "rightTable",
             "label": "Right Table (Secondary)",
-            "type": "array",
+            "type": "text",
             "required": true,
-            "spec": {
-                "type": "collection",
-                "spec": []
-            },
-            "help": "Secondary array of objects to join with the left table"
+            "help": "JSON array of objects to join with left table. Example: [{\"id\": 1, \"details\": \"...\"}]"
         },
         {
             "name": "task",
@@ -41,36 +33,6 @@
             "required": true,
             "multiline": true,
             "help": "Describe how rows should be matched. Example: 'Match companies by name, accounting for abbreviations and variations'"
-        },
-        {
-            "name": "mergeOnLeft",
-            "label": "Left Key Field",
-            "type": "text",
-            "required": true,
-            "help": "Field name in left table to use for matching"
-        },
-        {
-            "name": "mergeOnRight",
-            "label": "Right Key Field",
-            "type": "text",
-            "required": true,
-            "help": "Field name in right table to use for matching"
-        },
-        {
-            "name": "model",
-            "label": "LLM Model",
-            "type": "select",
-            "required": false,
-            "default": "",
-            "options": [
-                { "label": "Auto (Default)", "value": "" },
-                { "label": "Claude 3.5 Haiku", "value": "claude-3-5-haiku" },
-                { "label": "Claude 3.5 Sonnet", "value": "claude-3-5-sonnet" },
-                { "label": "GPT-4o", "value": "gpt-4o" },
-                { "label": "GPT-4o Mini", "value": "gpt-4o-mini" }
-            ],
-            "help": "LLM model to use for matching",
-            "advanced": true
         }
     ],
     "communication": [
@@ -82,7 +44,7 @@
             },
             "response": {
                 "temp": {
-                    "sessionId": "{{body.id}}"
+                    "sessionId": "{{body.session_id}}"
                 }
             }
         },
@@ -90,13 +52,17 @@
             "url": "/tasks",
             "method": "POST",
             "body": {
-                "task_type": "create_group",
                 "session_id": "{{temp.sessionId}}",
-                "data": "{{parameters.leftTable}}"
+                "payload": {
+                    "task_type": "create_group",
+                    "query": {
+                        "data_to_create": "{{parameters.leftTable}}"
+                    }
+                }
             },
             "response": {
                 "temp": {
-                    "leftArtifactTaskId": "{{body.id}}"
+                    "leftArtifactTaskId": "{{body.task_id}}"
                 }
             }
         },
@@ -113,13 +79,17 @@
             "url": "/tasks",
             "method": "POST",
             "body": {
-                "task_type": "create_group",
                 "session_id": "{{temp.sessionId}}",
-                "data": "{{parameters.rightTable}}"
+                "payload": {
+                    "task_type": "create_group",
+                    "query": {
+                        "data_to_create": "{{parameters.rightTable}}"
+                    }
+                }
             },
             "response": {
                 "temp": {
-                    "rightArtifactTaskId": "{{body.id}}"
+                    "rightArtifactTaskId": "{{body.task_id}}"
                 }
             }
         },
@@ -136,22 +106,22 @@
             "url": "/tasks",
             "method": "POST",
             "body": {
-                "task_type": "deep_merge",
                 "session_id": "{{temp.sessionId}}",
-                "query": {
-                    "task": "{{parameters.task}}",
-                    "merge_on_left": "{{parameters.mergeOnLeft}}",
-                    "merge_on_right": "{{parameters.mergeOnRight}}",
-                    "model": "{{parameters.model}}"
-                },
-                "input_artifacts": ["{{temp.leftArtifactId}}"],
-                "context_artifacts": ["{{temp.rightArtifactId}}"]
+                "payload": {
+                    "task_type": "deep_merge",
+                    "query": {
+                        "task": "{{parameters.task}}",
+                        "preview": false
+                    },
+                    "input_artifacts": ["{{temp.leftArtifactId}}"],
+                    "context_artifacts": ["{{temp.rightArtifactId}}"]
+                }
             },
             "response": {
                 "output": {
-                    "taskId": "{{body.id}}",
+                    "taskId": "{{body.task_id}}",
                     "sessionId": "{{temp.sessionId}}",
-                    "status": "{{body.status}}"
+                    "status": "pending"
                 }
             }
         }

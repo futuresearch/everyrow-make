@@ -15,13 +15,9 @@
         {
             "name": "inputData",
             "label": "Input Data",
-            "type": "array",
+            "type": "text",
             "required": true,
-            "spec": {
-                "type": "collection",
-                "spec": []
-            },
-            "help": "Array of objects to research. Each row will be processed by an AI agent."
+            "help": "JSON array of objects to research. Example: [{\"name\": \"Company A\"}, {\"name\": \"Company B\"}]"
         },
         {
             "name": "task",
@@ -36,46 +32,13 @@
             "label": "Effort Level",
             "type": "select",
             "required": false,
-            "default": "medium",
+            "default": "low",
             "options": [
                 { "label": "Low (faster, less thorough)", "value": "low" },
                 { "label": "Medium (balanced)", "value": "medium" },
                 { "label": "High (slower, more thorough)", "value": "high" }
             ],
             "help": "How much effort the agent should put into researching each row"
-        },
-        {
-            "name": "responseSchema",
-            "label": "Response Schema (JSON)",
-            "type": "text",
-            "required": false,
-            "multiline": true,
-            "help": "JSON schema defining the output structure. Example: {\"website\": {\"type\": \"str\"}, \"ceo_name\": {\"type\": \"str\"}, \"employee_count\": {\"type\": \"int\"}}"
-        },
-        {
-            "name": "model",
-            "label": "LLM Model",
-            "type": "select",
-            "required": false,
-            "default": "",
-            "options": [
-                { "label": "Auto (Default)", "value": "" },
-                { "label": "Claude 3.5 Haiku", "value": "claude-3-5-haiku" },
-                { "label": "Claude 3.5 Sonnet", "value": "claude-3-5-sonnet" },
-                { "label": "GPT-4o", "value": "gpt-4o" },
-                { "label": "GPT-4o Mini", "value": "gpt-4o-mini" }
-            ],
-            "help": "LLM model for the research agent",
-            "advanced": true
-        },
-        {
-            "name": "returnTablePerRow",
-            "label": "Return Table Per Row",
-            "type": "boolean",
-            "required": false,
-            "default": false,
-            "help": "If true, each row's result can be a table instead of a single object",
-            "advanced": true
         }
     ],
     "communication": [
@@ -87,7 +50,7 @@
             },
             "response": {
                 "temp": {
-                    "sessionId": "{{body.id}}"
+                    "sessionId": "{{body.session_id}}"
                 }
             }
         },
@@ -95,13 +58,17 @@
             "url": "/tasks",
             "method": "POST",
             "body": {
-                "task_type": "create_group",
                 "session_id": "{{temp.sessionId}}",
-                "data": "{{parameters.inputData}}"
+                "payload": {
+                    "task_type": "create_group",
+                    "query": {
+                        "data_to_create": "{{parameters.inputData}}"
+                    }
+                }
             },
             "response": {
                 "temp": {
-                    "artifactTaskId": "{{body.id}}"
+                    "artifactTaskId": "{{body.task_id}}"
                 }
             }
         },
@@ -118,23 +85,27 @@
             "url": "/tasks",
             "method": "POST",
             "body": {
-                "task_type": "agent",
                 "session_id": "{{temp.sessionId}}",
-                "query": {
-                    "task": "{{parameters.task}}",
-                    "effort_level": "{{parameters.effortLevel}}",
-                    "response_schema": "{{ifempty(parseJSON(parameters.responseSchema), emptyobject)}}",
-                    "model": "{{parameters.model}}",
-                    "return_table_per_row": "{{parameters.returnTablePerRow}}"
-                },
-                "input_artifacts": ["{{temp.inputArtifactId}}"],
-                "join_with_input": true
+                "payload": {
+                    "task_type": "agent",
+                    "processing_mode": "map",
+                    "query": {
+                        "task": "{{parameters.task}}",
+                        "effort_level": "{{parameters.effortLevel}}",
+                        "response_schema_type": "AUTO",
+                        "is_expand": false,
+                        "include_provenance_and_notes": false
+                    },
+                    "input_artifacts": ["{{temp.inputArtifactId}}"],
+                    "context_artifacts": [],
+                    "join_with_input": true
+                }
             },
             "response": {
                 "output": {
-                    "taskId": "{{body.id}}",
+                    "taskId": "{{body.task_id}}",
                     "sessionId": "{{temp.sessionId}}",
-                    "status": "{{body.status}}"
+                    "status": "pending"
                 }
             }
         }

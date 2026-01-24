@@ -1,0 +1,171 @@
+{
+    "name": "EveryRow Rank Example",
+    "flow": [
+        {
+            "id": 1,
+            "module": "util:SetVariables",
+            "version": 1,
+            "parameters": {},
+            "mapper": {
+                "variables": [
+                    {
+                        "name": "inputData",
+                        "value": "[{\"name\":\"OpenAI\",\"description\":\"AI research company, creators of GPT models and ChatGPT\"},{\"name\":\"Stripe\",\"description\":\"Payment processing platform for internet businesses\"},{\"name\":\"Anthropic\",\"description\":\"AI safety company, creators of Claude\"},{\"name\":\"Snowflake\",\"description\":\"Cloud data warehousing and analytics platform\"},{\"name\":\"Databricks\",\"description\":\"Unified analytics platform for big data and AI\"},{\"name\":\"Figma\",\"description\":\"Collaborative design tool for UI/UX\"},{\"name\":\"Scale AI\",\"description\":\"Data labeling and AI infrastructure company\"},{\"name\":\"Notion\",\"description\":\"All-in-one workspace for notes and collaboration\"}]"
+                    },
+                    {
+                        "name": "apiKey",
+                        "value": "YOUR_EVERYROW_API_KEY"
+                    }
+                ],
+                "scope": "roundtrip"
+            },
+            "metadata": {
+                "designer": { "x": 0, "y": 0 }
+            }
+        },
+        {
+            "id": 2,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/sessions/create",
+                "method": "post",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" },
+                    { "name": "Content-Type", "value": "application/json" }
+                ],
+                "body": "{\"name\":\"make-rank-{{now}}\"}",
+                "bodyType": "raw",
+                "contentType": "application/json"
+            },
+            "metadata": {
+                "designer": { "x": 300, "y": 0 },
+                "expect": [
+                    { "name": "body", "type": "any" }
+                ]
+            }
+        },
+        {
+            "id": 3,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/tasks",
+                "method": "post",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" },
+                    { "name": "Content-Type", "value": "application/json" }
+                ],
+                "body": "{\"session_id\":\"{{2.data.session_id}}\",\"payload\":{\"task_type\":\"create_group\",\"query\":{\"data_to_create\":{{1.inputData}}}}}",
+                "bodyType": "raw",
+                "contentType": "application/json"
+            },
+            "metadata": {
+                "designer": { "x": 600, "y": 0 }
+            }
+        },
+        {
+            "id": 4,
+            "module": "util:Sleep",
+            "version": 1,
+            "parameters": {},
+            "mapper": { "timeout": 3 },
+            "metadata": {
+                "designer": { "x": 900, "y": 0 }
+            }
+        },
+        {
+            "id": 5,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/tasks/{{3.data.task_id}}/status",
+                "method": "get",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" }
+                ]
+            },
+            "metadata": {
+                "designer": { "x": 1200, "y": 0 }
+            }
+        },
+        {
+            "id": 6,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/tasks",
+                "method": "post",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" },
+                    { "name": "Content-Type", "value": "application/json" }
+                ],
+                "body": "{\"session_id\":\"{{2.data.session_id}}\",\"payload\":{\"task_type\":\"deep_rank\",\"query\":{\"task\":\"Score each company by their relevance to AI infrastructure and foundational AI technology. Companies building core AI models, training infrastructure, or essential AI tooling should score highest.\",\"response_schema\":{\"_model_name\":\"RankResponse\",\"score\":{\"type\":\"float\",\"optional\":false,\"description\":\"Relevance score from 0-100\"},\"reasoning\":{\"type\":\"str\",\"optional\":false,\"description\":\"Brief explanation of the score\"}},\"field_to_sort_by\":\"score\",\"ascending_order\":false,\"preview\":false},\"input_artifacts\":[\"{{5.data.artifact_id}}\"],\"context_artifacts\":[]}}",
+                "bodyType": "raw",
+                "contentType": "application/json"
+            },
+            "metadata": {
+                "designer": { "x": 1500, "y": 0 }
+            }
+        },
+        {
+            "id": 7,
+            "module": "util:Sleep",
+            "version": 1,
+            "parameters": {},
+            "mapper": { "timeout": 10 },
+            "metadata": {
+                "designer": { "x": 1800, "y": 0 }
+            }
+        },
+        {
+            "id": 8,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/tasks/{{6.data.task_id}}/status",
+                "method": "get",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" }
+                ]
+            },
+            "metadata": {
+                "designer": { "x": 2100, "y": 0 }
+            }
+        },
+        {
+            "id": 9,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {},
+            "mapper": {
+                "url": "https://engine.futuresearch.ai/artifacts?artifact_ids={{8.data.artifact_id}}",
+                "method": "get",
+                "headers": [
+                    { "name": "Authorization", "value": "Bearer {{1.apiKey}}" }
+                ]
+            },
+            "metadata": {
+                "designer": { "x": 2400, "y": 0 }
+            }
+        }
+    ],
+    "metadata": {
+        "instant": false,
+        "version": 1,
+        "scenario": {
+            "roundtrips": 1,
+            "maxErrors": 3,
+            "autoCommit": true,
+            "autoCommitTriggerLast": true,
+            "sequential": false,
+            "slots": null
+        },
+        "designer": { "orphans": [] }
+    }
+}

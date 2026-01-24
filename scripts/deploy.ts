@@ -66,12 +66,12 @@ async function makeRequest(
     body,
   });
 
+  const text = await response.text();
+
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`HTTP ${response.status}: ${errorText}`);
+    throw new Error(`HTTP ${response.status}: ${text}`);
   }
 
-  const text = await response.text();
   try {
     return JSON.parse(text);
   } catch {
@@ -87,7 +87,7 @@ function readJsonFile(filePath: string): any {
 async function deployBase(): Promise<DeployResult> {
   try {
     const base = readJsonFile(path.join(APP_DIR, 'base.imljson'));
-    await makeRequest('PUT', `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/base`, JSON.stringify(base), 'text/plain');
+    await makeRequest('PUT', `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/base`, JSON.stringify(base), 'application/jsonc');
     return { success: true, component: 'base' };
   } catch (error: any) {
     return { success: false, component: 'base', error: error.message };
@@ -97,85 +97,114 @@ async function deployBase(): Promise<DeployResult> {
 async function deployCommon(): Promise<DeployResult> {
   try {
     const common = readJsonFile(path.join(APP_DIR, 'common.imljson'));
-    await makeRequest('PUT', `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/common`, JSON.stringify(common), 'text/plain');
+    await makeRequest('PUT', `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/common`, JSON.stringify(common), 'application/json');
     return { success: true, component: 'common' };
   } catch (error: any) {
     return { success: false, component: 'common', error: error.message };
   }
 }
 
-async function deployConnection(name: string, config: any): Promise<DeployResult> {
+async function getExistingConnections(): Promise<Map<string, string>> {
+  const response = await makeRequest('GET', `/${MAKE_APP_ID}/connections`);
+  const map = new Map<string, string>();
+  for (const conn of response.appConnections || []) {
+    map.set(conn.label, conn.name);
+  }
+  return map;
+}
+
+async function deployConnection(localName: string, config: any): Promise<DeployResult> {
+  const label = config.label || localName;
+
   try {
-    // First, try to create the connection
-    try {
-      await makeRequest('POST', `/${MAKE_APP_ID}/connections`, {
-        name: name,
-        label: config.label || name,
+    // Check if connection already exists
+    const existingConnections = await getExistingConnections();
+    let remoteName = existingConnections.get(label);
+
+    if (!remoteName) {
+      // Create the connection
+      console.log(`    Creating connection: ${label}`);
+      const response = await makeRequest('POST', `/${MAKE_APP_ID}/connections`, {
+        label: label,
         type: config.type || 'basic',
       });
-      console.log(`    Created connection: ${name}`);
-    } catch (e: any) {
-      // Connection might already exist, continue with update
-      if (!e.message.includes('already exists')) {
-        console.log(`    Connection may already exist, updating...`);
-      }
+      remoteName = response.appConnection.name;
+      console.log(`    Created connection with name: ${remoteName}`);
+    } else {
+      console.log(`    Connection exists: ${remoteName}`);
     }
 
-    // Deploy communication (api)
-    if (config.communication) {
-      await makeRequest(
-        'PUT',
-        `/${MAKE_APP_ID}/connections/${name}/api`,
-        JSON.stringify(config.communication),
-        'text/plain'
-      );
-    }
+    // Note: Connection code (api/parameters) deployment via API appears not to work
+    // The connection form parameters need to be configured manually in Make.com UI
+    // or the communication is handled by base configuration
+    console.log(`    Skipping connection code deployment (must be configured in Make.com UI)`);
 
-    // Deploy parameters
-    if (config.parameters) {
-      await makeRequest(
-        'PUT',
-        `/${MAKE_APP_ID}/connections/${name}/parameters`,
-        JSON.stringify(config.parameters),
-        'text/plain'
-      );
-    }
-
-    return { success: true, component: `connection:${name}` };
+    return { success: true, component: `connection:${label}` };
   } catch (error: any) {
-    return { success: false, component: `connection:${name}`, error: error.message };
+    return { success: false, component: `connection:${label}`, error: error.message };
   }
 }
 
-async function deployModule(name: string, config: any): Promise<DeployResult> {
-  try {
-    // Determine module type from config
-    let moduleType = 'action';
-    if (config.type === 'search') moduleType = 'search';
-    if (config.type === 'trigger') moduleType = 'trigger';
+async function getExistingModules(): Promise<Map<string, string>> {
+  const response = await makeRequest('GET', `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/modules`);
+  const map = new Map<string, string>();
+  for (const mod of response.appModules || []) {
+    map.set(mod.name, mod.name);
+  }
+  return map;
+}
 
-    // First, try to create the module
-    try {
+async function deployModule(localName: string, config: any, connMap: Map<string, string>): Promise<DeployResult> {
+  try {
+    // Check if module already exists
+    const existingModules = await getExistingModules();
+    let moduleName = localName;
+
+    // Resolve connection reference to actual Make.com connection name
+    let connectionName: string | null = null;
+    if (config.connection) {
+      // Try to find by label first (our connection labels)
+      const label = config.connection === 'everyrow-api' ? 'EveryRow API' : config.connection;
+      connectionName = connMap.get(label) || null;
+      if (!connectionName) {
+        // Maybe it's already a Make.com name
+        for (const [, name] of connMap) {
+          if (name === config.connection) {
+            connectionName = name;
+            break;
+          }
+        }
+      }
+      console.log(`    Connection reference: ${config.connection} -> ${connectionName || 'null'}`);
+    }
+
+    if (!existingModules.has(moduleName)) {
+      // Determine module type from config
+      let moduleType = 'action';
+      if (config.type === 'search') moduleType = 'search';
+      if (config.type === 'trigger') moduleType = 'trigger';
+
+      // Create the module
+      console.log(`    Creating module: ${moduleName} (type: ${moduleType})`);
       await makeRequest('POST', `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/modules`, {
-        name: name,
-        label: config.label || name,
+        name: moduleName,
+        label: config.label || moduleName,
         description: config.description || '',
-        type_id: getModuleTypeId(moduleType),
-        connection: config.connection || null,
-        moduleInitMode: 'blank',
+        typeId: getModuleTypeId(moduleType),
+        connection: connectionName,
       });
-      console.log(`    Created module: ${name}`);
-    } catch (e: any) {
-      console.log(`    Module may already exist, updating...`);
+      console.log(`    Created module: ${moduleName}`);
+    } else {
+      console.log(`    Module exists: ${moduleName}`);
     }
 
     // Deploy communication (api)
     if (config.communication) {
       await makeRequest(
         'PUT',
-        `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/modules/${name}/api`,
+        `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/modules/${moduleName}/api`,
         JSON.stringify(config.communication),
-        'text/plain'
+        'application/jsonc'
       );
     }
 
@@ -183,9 +212,9 @@ async function deployModule(name: string, config: any): Promise<DeployResult> {
     if (config.parameters) {
       await makeRequest(
         'PUT',
-        `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/modules/${name}/expect`,
+        `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/modules/${moduleName}/expect`,
         JSON.stringify(config.parameters),
-        'text/plain'
+        'application/jsonc'
       );
     }
 
@@ -193,9 +222,9 @@ async function deployModule(name: string, config: any): Promise<DeployResult> {
     if (config.interface) {
       await makeRequest(
         'PUT',
-        `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/modules/${name}/interface`,
+        `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/modules/${moduleName}/interface`,
         JSON.stringify(config.interface),
-        'text/plain'
+        'application/jsonc'
       );
     }
 
@@ -203,15 +232,15 @@ async function deployModule(name: string, config: any): Promise<DeployResult> {
     if (config.samples) {
       await makeRequest(
         'PUT',
-        `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/modules/${name}/samples`,
+        `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/modules/${moduleName}/samples`,
         JSON.stringify(config.samples),
-        'text/plain'
+        'application/jsonc'
       );
     }
 
-    return { success: true, component: `module:${name}` };
+    return { success: true, component: `module:${moduleName}` };
   } catch (error: any) {
-    return { success: false, component: `module:${name}`, error: error.message };
+    return { success: false, component: `module:${localName}`, error: error.message };
   }
 }
 
@@ -228,27 +257,49 @@ function getModuleTypeId(type: string): number {
   return types[type] || 4;
 }
 
-async function deployRpc(name: string, config: any): Promise<DeployResult> {
+async function getExistingRpcs(): Promise<Map<string, string>> {
+  const response = await makeRequest('GET', `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/rpcs`);
+  const map = new Map<string, string>();
+  for (const rpc of response.appRpcs || []) {
+    map.set(rpc.name, rpc.name);
+  }
+  return map;
+}
+
+async function deployRpc(localName: string, config: any, connMap: Map<string, string>): Promise<DeployResult> {
   try {
-    // First, try to create the RPC
-    try {
+    // Check if RPC already exists
+    const existingRpcs = await getExistingRpcs();
+    let rpcName = localName;
+
+    // Resolve connection reference to actual Make.com connection name
+    let connectionName: string | null = null;
+    if (config.connection) {
+      const label = config.connection === 'everyrow-api' ? 'EveryRow API' : config.connection;
+      connectionName = connMap.get(label) || null;
+      console.log(`    RPC connection reference: ${config.connection} -> ${connectionName || 'null'}`);
+    }
+
+    if (!existingRpcs.has(rpcName)) {
+      // Create the RPC
+      console.log(`    Creating RPC: ${rpcName}`);
       await makeRequest('POST', `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/rpcs`, {
-        name: name,
-        label: config.label || name,
-        connection: config.connection || null,
+        name: rpcName,
+        label: config.label || rpcName,
+        connection: connectionName,
       });
-      console.log(`    Created RPC: ${name}`);
-    } catch (e: any) {
-      console.log(`    RPC may already exist, updating...`);
+      console.log(`    Created RPC: ${rpcName}`);
+    } else {
+      console.log(`    RPC exists: ${rpcName}`);
     }
 
     // Deploy communication (api)
     if (config.communication) {
       await makeRequest(
         'PUT',
-        `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/rpcs/${name}/api`,
+        `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/rpcs/${rpcName}/api`,
         JSON.stringify(config.communication),
-        'text/plain'
+        'application/jsonc'
       );
     }
 
@@ -256,17 +307,20 @@ async function deployRpc(name: string, config: any): Promise<DeployResult> {
     if (config.parameters) {
       await makeRequest(
         'PUT',
-        `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/rpcs/${name}/parameters`,
+        `/${MAKE_APP_ID}/${MAKE_APP_VERSION}/rpcs/${rpcName}/parameters`,
         JSON.stringify(config.parameters),
-        'text/plain'
+        'application/jsonc'
       );
     }
 
-    return { success: true, component: `rpc:${name}` };
+    return { success: true, component: `rpc:${rpcName}` };
   } catch (error: any) {
-    return { success: false, component: `rpc:${name}`, error: error.message };
+    return { success: false, component: `rpc:${localName}`, error: error.message };
   }
 }
+
+// Global map of connection labels to Make.com connection names
+let connectionNameMap: Map<string, string> = new Map();
 
 async function main() {
   console.log('=== Make.com Custom App Deploy ===');
@@ -284,17 +338,22 @@ async function main() {
   console.log('Deploying common...');
   results.push(await deployCommon());
 
-  // Deploy connections
+  // Deploy connections first and build the name mapping
   const connectionsDir = path.join(APP_DIR, 'connections');
   if (fs.existsSync(connectionsDir)) {
     console.log('Deploying connections...');
     const connectionFiles = fs.readdirSync(connectionsDir).filter(f => f.endsWith('.imljson'));
     for (const file of connectionFiles) {
-      const name = file.replace('.imljson', '').replace(/-/g, '_');
+      const localName = file.replace('.imljson', '').replace(/-/g, '_');
       const config = readJsonFile(path.join(connectionsDir, file));
-      results.push(await deployConnection(name, config));
+      const result = await deployConnection(localName, config);
+      results.push(result);
     }
   }
+
+  // Refresh connection name map after deploying connections
+  connectionNameMap = await getExistingConnections();
+  console.log('  Connection mapping:', Object.fromEntries(connectionNameMap));
 
   // Deploy modules
   const modulesDir = path.join(APP_DIR, 'modules');
@@ -305,7 +364,7 @@ async function main() {
       // Convert filename to valid Make.com module name (alphanumeric + underscore)
       const name = file.replace('.imljson', '').replace(/-/g, '_');
       const config = readJsonFile(path.join(modulesDir, file));
-      results.push(await deployModule(name, config));
+      results.push(await deployModule(name, config, connectionNameMap));
     }
   }
 
@@ -317,7 +376,7 @@ async function main() {
     for (const file of rpcFiles) {
       const name = file.replace('.imljson', '').replace(/-/g, '_');
       const config = readJsonFile(path.join(rpcsDir, file));
-      results.push(await deployRpc(name, config));
+      results.push(await deployRpc(name, config, connectionNameMap));
     }
   }
 

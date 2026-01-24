@@ -15,13 +15,9 @@
         {
             "name": "inputData",
             "label": "Input Data",
-            "type": "array",
+            "type": "text",
             "required": true,
-            "spec": {
-                "type": "collection",
-                "spec": []
-            },
-            "help": "Array of objects to rank. Each object should have the fields you want to evaluate."
+            "help": "JSON array of objects to rank. Example: [{\"name\": \"Company A\"}, {\"name\": \"Company B\"}]"
         },
         {
             "name": "task",
@@ -70,7 +66,7 @@
             },
             "response": {
                 "temp": {
-                    "sessionId": "{{body.id}}"
+                    "sessionId": "{{body.session_id}}"
                 }
             }
         },
@@ -78,13 +74,17 @@
             "url": "/tasks",
             "method": "POST",
             "body": {
-                "task_type": "create_group",
                 "session_id": "{{temp.sessionId}}",
-                "data": "{{parameters.inputData}}"
+                "payload": {
+                    "task_type": "create_group",
+                    "query": {
+                        "data_to_create": "{{parameters.inputData}}"
+                    }
+                }
             },
             "response": {
                 "temp": {
-                    "artifactTaskId": "{{body.id}}"
+                    "artifactTaskId": "{{body.task_id}}"
                 }
             }
         },
@@ -101,28 +101,30 @@
             "url": "/tasks",
             "method": "POST",
             "body": {
-                "task_type": "deep_rank",
                 "session_id": "{{temp.sessionId}}",
-                "query": {
-                    "task": "{{parameters.task}}",
-                    "field_to_sort_by": "{{parameters.fieldName}}",
-                    "field_type": "{{parameters.fieldType}}",
-                    "ascending_order": "{{parameters.ascendingOrder}}",
-                    "response_schema": {
-                        "_model_name": "RankResponse",
-                        "{{parameters.fieldName}}": {
-                            "type": "{{parameters.fieldType}}",
-                            "optional": false
+                "payload": {
+                    "task_type": "deep_rank",
+                    "query": {
+                        "task": "{{parameters.task}}",
+                        "field_to_sort_by": "{{parameters.fieldName}}",
+                        "ascending_order": "{{parameters.ascendingOrder}}",
+                        "response_schema": {
+                            "_model_name": "RankResponse",
+                            "{{parameters.fieldName}}": {
+                                "type": "{{parameters.fieldType}}",
+                                "optional": false
+                            }
                         }
-                    }
-                },
-                "input_artifacts": ["{{temp.inputArtifactId}}"]
+                    },
+                    "input_artifacts": ["{{temp.inputArtifactId}}"],
+                    "context_artifacts": []
+                }
             },
             "response": {
                 "output": {
-                    "taskId": "{{body.id}}",
+                    "taskId": "{{body.task_id}}",
                     "sessionId": "{{temp.sessionId}}",
-                    "status": "{{body.status}}"
+                    "status": "pending"
                 }
             }
         }

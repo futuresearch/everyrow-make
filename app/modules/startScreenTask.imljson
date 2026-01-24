@@ -15,13 +15,9 @@
         {
             "name": "inputData",
             "label": "Input Data",
-            "type": "array",
+            "type": "text",
             "required": true,
-            "spec": {
-                "type": "collection",
-                "spec": []
-            },
-            "help": "Array of objects to filter"
+            "help": "JSON array of objects to filter. Example: [{\"name\": \"Company A\"}, {\"name\": \"Company B\"}]"
         },
         {
             "name": "task",
@@ -30,32 +26,6 @@
             "required": true,
             "multiline": true,
             "help": "Describe the filtering criteria. Example: 'Keep only companies in the technology sector with more than 100 employees'"
-        },
-        {
-            "name": "responseSchema",
-            "label": "Response Schema (JSON)",
-            "type": "text",
-            "required": false,
-            "multiline": true,
-            "help": "Optional JSON schema for additional output fields. Example: {\"reason\": {\"type\": \"str\", \"description\": \"Why this row passed/failed\"}}"
-        },
-        {
-            "name": "batchSize",
-            "label": "Batch Size",
-            "type": "number",
-            "required": false,
-            "default": 10,
-            "help": "Number of rows to process in parallel (1-100)",
-            "advanced": true
-        },
-        {
-            "name": "previewMode",
-            "label": "Preview Mode",
-            "type": "boolean",
-            "required": false,
-            "default": false,
-            "help": "If true, only process first 3 rows to test criteria",
-            "advanced": true
         }
     ],
     "communication": [
@@ -67,7 +37,7 @@
             },
             "response": {
                 "temp": {
-                    "sessionId": "{{body.id}}"
+                    "sessionId": "{{body.session_id}}"
                 }
             }
         },
@@ -75,13 +45,17 @@
             "url": "/tasks",
             "method": "POST",
             "body": {
-                "task_type": "create_group",
                 "session_id": "{{temp.sessionId}}",
-                "data": "{{parameters.inputData}}"
+                "payload": {
+                    "task_type": "create_group",
+                    "query": {
+                        "data_to_create": "{{parameters.inputData}}"
+                    }
+                }
             },
             "response": {
                 "temp": {
-                    "artifactTaskId": "{{body.id}}"
+                    "artifactTaskId": "{{body.task_id}}"
                 }
             }
         },
@@ -98,21 +72,22 @@
             "url": "/tasks",
             "method": "POST",
             "body": {
-                "task_type": "deep_screen",
                 "session_id": "{{temp.sessionId}}",
-                "query": {
-                    "task": "{{parameters.task}}",
-                    "response_schema": "{{ifempty(parseJSON(parameters.responseSchema), emptyobject)}}",
-                    "batch_size": "{{parameters.batchSize}}",
-                    "preview_mode": "{{parameters.previewMode}}"
-                },
-                "input_artifacts": ["{{temp.inputArtifactId}}"]
+                "payload": {
+                    "task_type": "deep_screen",
+                    "query": {
+                        "task": "{{parameters.task}}",
+                        "preview": false
+                    },
+                    "input_artifacts": ["{{temp.inputArtifactId}}"],
+                    "context_artifacts": []
+                }
             },
             "response": {
                 "output": {
-                    "taskId": "{{body.id}}",
+                    "taskId": "{{body.task_id}}",
                     "sessionId": "{{temp.sessionId}}",
-                    "status": "{{body.status}}"
+                    "status": "pending"
                 }
             }
         }

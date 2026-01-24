@@ -56,7 +56,7 @@
                 "payload": {
                     "task_type": "create_group",
                     "query": {
-                        "data_to_create": "{{parameters.leftTable}}"
+                        "data_to_create": "{{parseJSON(parameters.leftTable)}}"
                     }
                 }
             },
@@ -83,7 +83,7 @@
                 "payload": {
                     "task_type": "create_group",
                     "query": {
-                        "data_to_create": "{{parameters.rightTable}}"
+                        "data_to_create": "{{parseJSON(parameters.rightTable)}}"
                     }
                 }
             },

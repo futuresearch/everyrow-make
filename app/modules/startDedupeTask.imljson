@@ -49,7 +49,7 @@
                 "payload": {
                     "task_type": "create_group",
                     "query": {
-                        "data_to_create": "{{parameters.inputData}}"
+                        "data_to_create": "{{parseJSON(parameters.inputData)}}"
                     }
                 }
             },

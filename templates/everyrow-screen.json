@@ -1,0 +1,70 @@
+{
+    "name": "EveryRow Screen",
+    "flow": [
+        {
+            "id": 1,
+            "module": "util:SetVariables",
+            "version": 1,
+            "parameters": {},
+            "mapper": {
+                "variables": [
+                    {
+                        "name": "inputData",
+                        "value": "[{\"name\":\"OpenAI\",\"description\":\"AI research company, creators of GPT models and ChatGPT\"},{\"name\":\"Stripe\",\"description\":\"Payment processing platform for internet businesses\"},{\"name\":\"Anthropic\",\"description\":\"AI safety company, creators of Claude\"},{\"name\":\"Snowflake\",\"description\":\"Cloud data warehousing and analytics platform\"},{\"name\":\"Figma\",\"description\":\"Collaborative design tool for UI/UX\"}]"
+                    }
+                ],
+                "scope": "roundtrip"
+            },
+            "metadata": {"designer": {"x": 0, "y": 0}}
+        },
+        {
+            "id": 2,
+            "module": "app#custom-app-oonbtb:startScreenTask",
+            "version": 1,
+            "parameters": {},
+            "mapper": {
+                "inputData": "{{1.inputData}}",
+                "task": "Keep only companies that are primarily focused on AI/ML technology. Filter out companies that are not core AI companies."
+            },
+            "metadata": {"designer": {"x": 300, "y": 0}}
+        },
+        {
+            "id": 3,
+            "module": "app#custom-app-oonbtb:getTaskStatus",
+            "version": 1,
+            "parameters": {},
+            "mapper": {"taskId": "{{2.taskId}}"},
+            "metadata": {"designer": {"x": 600, "y": 0}}
+        },
+        {
+            "id": 4,
+            "module": "util:FunctionSleep",
+            "version": 1,
+            "parameters": {},
+            "mapper": {"timeout": "120"},
+            "metadata": {"designer": {"x": 900, "y": 0}}
+        },
+        {
+            "id": 5,
+            "module": "app#custom-app-oonbtb:getTaskStatus",
+            "version": 1,
+            "parameters": {},
+            "mapper": {"taskId": "{{2.taskId}}"},
+            "metadata": {"designer": {"x": 1200, "y": 0}}
+        },
+        {
+            "id": 6,
+            "module": "app#custom-app-oonbtb:getTaskResults",
+            "version": 1,
+            "parameters": {},
+            "mapper": {"taskId": "{{2.taskId}}"},
+            "metadata": {"designer": {"x": 1500, "y": 0}}
+        }
+    ],
+    "metadata": {
+        "instant": false,
+        "version": 1,
+        "scenario": {"roundtrips": 1, "maxErrors": 3, "autoCommit": true, "autoCommitTriggerLast": true, "sequential": false},
+        "designer": {"orphans": []}
+    }
+}

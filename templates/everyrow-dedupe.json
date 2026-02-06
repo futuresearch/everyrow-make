@@ -1,0 +1,70 @@
+{
+    "name": "EveryRow Dedupe",
+    "flow": [
+        {
+            "id": 1,
+            "module": "util:SetVariables",
+            "version": 1,
+            "parameters": {},
+            "mapper": {
+                "variables": [
+                    {
+                        "name": "inputData",
+                        "value": "[{\"name\":\"OpenAI\",\"location\":\"San Francisco\"},{\"name\":\"Open AI\",\"location\":\"SF\"},{\"name\":\"Anthropic\",\"location\":\"San Francisco\"},{\"name\":\"Stripe Inc\",\"location\":\"South San Francisco\"},{\"name\":\"Stripe\",\"location\":\"SSF\"}]"
+                    }
+                ],
+                "scope": "roundtrip"
+            },
+            "metadata": {"designer": {"x": 0, "y": 0}}
+        },
+        {
+            "id": 2,
+            "module": "app#custom-app-oonbtb:startDedupeTask",
+            "version": 1,
+            "parameters": {},
+            "mapper": {
+                "inputData": "{{1.inputData}}",
+                "equivalenceRelation": "Two rows are duplicates if they refer to the same company, even if the name is spelled differently or abbreviated."
+            },
+            "metadata": {"designer": {"x": 300, "y": 0}}
+        },
+        {
+            "id": 3,
+            "module": "app#custom-app-oonbtb:getTaskStatus",
+            "version": 1,
+            "parameters": {},
+            "mapper": {"taskId": "{{2.taskId}}"},
+            "metadata": {"designer": {"x": 600, "y": 0}}
+        },
+        {
+            "id": 4,
+            "module": "util:FunctionSleep",
+            "version": 1,
+            "parameters": {},
+            "mapper": {"timeout": "120"},
+            "metadata": {"designer": {"x": 900, "y": 0}}
+        },
+        {
+            "id": 5,
+            "module": "app#custom-app-oonbtb:getTaskStatus",
+            "version": 1,
+            "parameters": {},
+            "mapper": {"taskId": "{{2.taskId}}"},
+            "metadata": {"designer": {"x": 1200, "y": 0}}
+        },
+        {
+            "id": 6,
+            "module": "app#custom-app-oonbtb:getTaskResults",
+            "version": 1,
+            "parameters": {},
+            "mapper": {"taskId": "{{2.taskId}}"},
+            "metadata": {"designer": {"x": 1500, "y": 0}}
+        }
+    ],
+    "metadata": {
+        "instant": false,
+        "version": 1,
+        "scenario": {"roundtrips": 1, "maxErrors": 3, "autoCommit": true, "autoCommitTriggerLast": true, "sequential": false},
+        "designer": {"orphans": []}
+    }
+}

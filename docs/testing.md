@@ -2,12 +2,9 @@
 
 ## Test API Key
 
-For development and testing, use this API key:
-```
-***REMOVED***
-```
+For development and testing, get your own API key at [everyrow.io/settings/api-keys](https://everyrow.io/settings/api-keys).
 
-**Note:** This is a test key with limited credits. Do not use for production.
+New accounts receive **$20 free credit**.
 
 ## Setting Up in Make.com
 
